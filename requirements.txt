@@ -8,4 +8,5 @@ cryptography
 openai
 requests
 pydantic_settings
-pymongo
+pymongo[srv]
+dnspython

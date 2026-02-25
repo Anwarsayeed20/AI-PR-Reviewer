@@ -12,7 +12,7 @@ class RepoSelection(BaseModel):
 
 
 class ReviewerConfig(BaseModel):
-    provider: Literal["openai", "claude", "huggingface", "ollama"]
+    provider: Literal["huggingface", "groq", "gemini", "cerebras", "openrouter"]
     model: str
     hf_endpoint_url: Optional[str] = Field(None, alias="hfEndpointUrl")
 

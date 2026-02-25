@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="PR Guardian AI — AI-powered pull request reviewer for GitHub. Automated code reviews using LLMs.">
+  <title>PR Guardian AI — Automated Code Reviews</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%230d1117'/%3E%3Cpath d='M25 30h50M25 50h35M25 70h45' stroke='%2300ff41' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='75' cy='70' r='8' fill='%2300ff41'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Fix asset paths when served from backend /static/ or /app
+    (function () {
+      var p = window.location.pathname;
+      if (p.startsWith('/static/') || p.startsWith('/app')) {
+        var base = document.createElement('base');
+        base.href = '/static/';
+        document.head.prepend(base);
+      }
+    })();
+  </script>
+</head>
+
+<body>
+
+  <!-- Matrix Rain Background -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- ==================== NAVIGATION ==================== -->
+  <nav class="nav" id="navbar">
+    <div class="nav-brand" onclick="navigateTo('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+      <span>PR_GUARDIAN<span class="blink">_</span></span>
+    </div>
+
+    <button class="nav-toggle" id="navToggle" onclick="toggleNav()">☰</button>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#home" onclick="navigateTo('home')" data-page="home">
+          <span class="nav-icon">⌂</span> Home
+        </a></li>
+      <li><a href="#dashboard" onclick="navigateTo('dashboard')" data-page="dashboard">
+          <span class="nav-icon">◧</span> Dashboard
+        </a></li>
+      <li><a href="#setup" onclick="navigateTo('setup')" data-page="setup">
+          <span class="nav-icon">⚙</span> Setup
+        </a></li>
+      <li><a href="#status" onclick="navigateTo('status')" data-page="status">
+          <span class="nav-icon">◉</span> Status
+        </a></li>
+      <li><a href="#docs" onclick="navigateTo('docs')" data-page="docs">
+          <span class="nav-icon">❯</span> Docs
+        </a></li>
+    </ul>
+  </nav>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content">
+
+    <!-- ====================== HOME PAGE ====================== -->
+    <section class="page active" id="page-home">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-badge">
+          <span class="pulse-dot"></span>
+          SYSTEM ONLINE — v2.0
+        </div>
+
+        <h1>
+          <span class="gradient-text glitch" data-text="PR Guardian AI">PR Guardian AI</span><span
+            class="cursor"></span>
+        </h1>
+
+        <p class="hero-subtitle">
+          AI-powered pull request reviews that catch bugs, security risks, and code smells before they hit production.
+          Plugs into your GitHub workflow in seconds.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#setup" class="btn btn-primary" onclick="navigateTo('setup')">
+            ⚡ Quick Setup
+          </a>
+          <a href="#docs" class="btn btn-secondary" onclick="navigateTo('docs')">
+            ❯_ View API Docs
+          </a>
+          <a href="#status" class="btn btn-secondary" onclick="navigateTo('status')">
+            ◉ Check Status
+          </a>
+        </div>
+
+        <!-- Hero Terminal -->
+        <div class="hero-terminal">
+          <div class="terminal">
+            <div class="terminal-header">
+              <div class="terminal-dots"><span></span><span></span><span></span></div>
+              <span class="terminal-title">pr-guardian — bash</span>
+            </div>
+            <div class="terminal-body" id="heroTerminal">
+              <!-- Populated by JS typing animation -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="container">
+        <div class="section-header" style="text-align:center;">
+          <span class="section-label">// FEATURES</span>
+          <h2 class="section-title">What it does</h2>
+          <p class="section-desc" style="margin:0 auto;">Every PR gets an automated AI review — inline comments,
+            security checks, and a summary. No manual effort required.</p>
+        </div>
+
+        <div class="features-grid">
+          <div class="card">
+            <div class="card-icon">🔍</div>
+            <h3 class="card-title">AI Code Review</h3>
+            <p class="card-desc">Uses LLMs to analyze diffs and provide intelligent, context-aware feedback on every
+              pull request.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛡️</div>
+            <h3 class="card-title">Security Scanner</h3>
+            <p class="card-desc">Detects hardcoded secrets, SQL injection risks, XSS vulnerabilities, and other security
+              patterns.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📏</div>
+            <h3 class="card-title">Static Rules</h3>
+            <p class="card-desc">Catches TODOs, print statements, bare excepts — configurable rule engine that runs
+              before the AI layer.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">💬</div>
+            <h3 class="card-title">Inline Comments</h3>
+            <p class="card-desc">Posts review comments directly on the changed lines in your PR, not just a wall of
+              text.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧠</div>
+            <h3 class="card-title">5 LLM Providers</h3>
+            <p class="card-desc">Choose from HuggingFace, Groq, Gemini, Cerebras, or OpenRouter — switch anytime.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚡</div>
+            <h3 class="card-title">Zero Config</h3>
+            <p class="card-desc">Install the GitHub App, pick a provider, and you're live. Reviews start automatically
+              on every PR.</p>
+          </div>
+        </div>
+
+        <!-- How It Works -->
+        <div style="margin-top: var(--space-3xl);">
+          <div class="section-header" style="text-align:center;">
+            <span class="section-label">// HOW IT WORKS</span>
+            <h2 class="section-title">The Pipeline</h2>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h3>GitHub Webhook Fires</h3>
+                <p>When you open or update a PR, GitHub sends a webhook event to PR Guardian's backend.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h3>Diff Parsed & Rules Run</h3>
+                <p>The diff is parsed into individual changed lines. Static rules scan for common anti-patterns.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h3>LLM Analyzes Changes</h3>
+                <p>The changed code is sent to your chosen LLM provider for an intelligent code review.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h3>Comments Posted to PR</h3>
+                <p>Inline comments are posted directly on the affected lines, plus a summary comment on the PR.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-links">
+          <a href="#privacy" onclick="navigateTo('privacy')">Privacy</a>
+          <a href="#terms" onclick="navigateTo('terms')">Terms</a>
+          <a href="#support" onclick="navigateTo('support')">Support</a>
+          <a href="https://github.com/Abdur1R/pr-reviewer" target="_blank">GitHub ↗</a>
+        </div>
+        <p>PR Guardian AI © 2025 — Built by coders, for coders.</p>
+      </footer>
+    </section>
+
+    <!-- ====================== DASHBOARD PAGE ====================== -->
+    <section class="page" id="page-dashboard">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">◧ DASHBOARD</span>
+          <h2 class="section-title">Installation Dashboard</h2>
+          <p class="section-desc">View and manage your GitHub App installations, repos, and review settings.</p>
+        </div>
+
+        <!-- Lookup by Installation ID -->
+        <div class="card" style="margin-bottom: var(--space-lg);">
+          <h3 class="card-title" style="margin-bottom: var(--space-md);">⟩ Lookup Installation</h3>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Installation ID</label>
+              <input type="number" class="form-input" id="dashInstId" placeholder="e.g. 12345678" value="">
+            </div>
+            <div class="form-group" style="margin-bottom:0; display:flex; align-items:flex-end;">
+              <button class="btn btn-primary" onclick="lookupInstallation()" id="dashLookupBtn">
+                ⟩ Fetch
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- OR Lookup by User ID -->
+        <div class="card" style="margin-bottom: var(--space-xl);">
+          <h3 class="card-title" style="margin-bottom: var(--space-md);">⟩ Lookup by User ID</h3>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">GitHub Username</label>
+              <input type="text" class="form-input" id="dashUserId" placeholder="e.g. octocat">
+            </div>
+            <div class="form-group" style="margin-bottom:0; display:flex; align-items:flex-end;">
+              <button class="btn btn-primary" onclick="lookupUserInstallations()" id="dashUserLookupBtn">
+                ⟩ Fetch
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Area -->
+        <div id="dashResults" class="empty-state">
+          <div class="empty-icon">◧</div>
+          <p>Enter an Installation ID or User ID above to load data.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== SETUP PAGE ====================== -->
+    <section class="page" id="page-setup">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">⚙ SETUP</span>
+          <h2 class="section-title">Configure Installation</h2>
+          <p class="section-desc">Connect your GitHub installation and configure the AI reviewer.</p>
+        </div>
+
+        <!-- Step 1: Installation ID -->
+        <div class="card" style="margin-bottom: var(--space-lg);" id="setupStep1">
+          <div class="card-header">
+            <h3 class="card-title">Step 1 — Enter Installation ID</h3>
+            <span class="status-badge status-loading" id="setupStep1Status" style="display:none;">
+              <span class="dot"></span> Loading
+            </span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">GitHub App Installation ID</label>
+            <input type="number" class="form-input" id="setupInstId"
+              placeholder="Find this in your GitHub App settings">
+            <p class="form-hint">After installing the GitHub App, you'll find the installation ID in the URL:
+              github.com/settings/installations/<strong>ID</strong></p>
+          </div>
+          <button class="btn btn-primary" onclick="setupFetchInfo()" id="setupFetchBtn">
+            ⟩ Fetch Installation Info
+          </button>
+          <div id="setupUserInfo" style="margin-top: var(--space-md); display:none;">
+            <p style="color: var(--neon-green); font-size: 0.85rem;">
+              ✓ GitHub User: <strong id="setupUsername">—</strong>
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Repos (hidden until step 1) -->
+        <div class="card" style="margin-bottom: var(--space-lg); display:none;" id="setupStep2">
+          <div class="card-header">
+            <h3 class="card-title">Step 2 — Select Repositories</h3>
+            <span class="status-badge status-loading" id="setupStep2Status" style="display:none;">
+              <span class="dot"></span> Loading repos
+            </span>
+          </div>
+          <p class="card-desc" style="margin-bottom: var(--space-md);">Choose which repos should get AI code reviews.
+          </p>
+          <div class="checkbox-list" id="setupRepoList">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Step 3: Choose LLM Provider (hidden until step 2) -->
+        <div class="card" style="margin-bottom: var(--space-lg); display:none;" id="setupStep3">
+          <h3 class="card-title" style="margin-bottom: var(--space-md);">Step 3 — Choose AI Provider</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">LLM Provider</label>
+              <select class="form-select" id="setupProvider" onchange="updateModelOptions()">
+                <option value="huggingface">🤗 HuggingFace</option>
+                <option value="groq">⚡ Groq</option>
+                <option value="gemini">💎 Gemini</option>
+                <option value="cerebras">🧠 Cerebras</option>
+                <option value="openrouter">🔀 OpenRouter</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-input" id="setupModel" placeholder="Model name"
+                value="Qwen/Qwen2.5-Coder-7B-Instruct">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Save -->
+        <div style="display:none;" id="setupStep4">
+          <button class="btn btn-primary" onclick="saveSetup()" id="setupSaveBtn"
+            style="width:100%; justify-content:center;">
+            ⟩ Save Configuration
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div id="setupResult" style="margin-top: var(--space-lg);"></div>
+      </div>
+    </section>
+
+    <!-- ====================== STATUS PAGE ====================== -->
+    <section class="page" id="page-status">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">◉ STATUS</span>
+          <h2 class="section-title">LLM Provider Health</h2>
+          <p class="section-desc">Real-time health check of all configured AI providers.</p>
+        </div>
+
+        <!-- Backend health -->
+        <div class="card" style="margin-bottom:var(--space-lg);">
+          <div class="card-header">
+            <h3 class="card-title">⟩ Backend Server</h3>
+            <span class="status-badge status-loading" id="backendStatus">
+              <span class="dot"></span> Checking...
+            </span>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">API Base URL</label>
+            <div style="display:flex; gap: var(--space-sm);">
+              <input type="text" class="form-input" id="apiBaseUrl" value="http://localhost:8000">
+              <button class="btn btn-primary btn-sm" onclick="checkBackendHealth()">Ping</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LLM providers -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-lg);">
+          <h3 style="font-size:1rem;">Providers</h3>
+          <button class="btn btn-primary btn-sm" onclick="testAllProviders()" id="testAllBtn">
+            ◉ Test All Providers
+          </button>
+        </div>
+
+        <div class="provider-grid" id="providerGrid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="statusStats" style="display:none;">
+          <div class="stat-box">
+            <div class="stat-value" id="statWorking">0</div>
+            <div class="stat-label">Working</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="statFailed" style="color:var(--neon-red);">0</div>
+            <div class="stat-label">Failed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="statTotal">5</div>
+            <div class="stat-label">Total</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== DOCS PAGE ====================== -->
+    <section class="page" id="page-docs">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">❯_ API DOCS</span>
+          <h2 class="section-title">API Reference</h2>
+          <p class="section-desc">All available endpoints for the PR Guardian AI backend.</p>
+        </div>
+
+        <!-- API Endpoints -->
+        <div id="apiEndpoints">
+
+          <!-- GET / -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/</span>
+              <span class="endpoint-desc">Health check</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Returns the
+                server status.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /
+
+<span style="color:var(--text-muted);">Response:</span>
+{
+  "status": "ok",
+  "app": "PR Guardian AI"
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /test-llm/{provider} -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/test-llm/{provider}</span>
+              <span class="endpoint-desc">Test single LLM</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Test a specific
+                LLM provider. Optional <code style="color:var(--neon-cyan);">?model=</code> query parameter.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /test-llm/groq
+<span class="method method-get">GET</span> /test-llm/gemini?model=gemini-2.0-flash
+
+<span style="color:var(--text-muted);">Providers:</span> huggingface, groq, gemini, cerebras, openrouter
+
+<span style="color:var(--text-muted);">Response:</span>
+{
+  "status": "ok",
+  "provider": "groq",
+  "model": "llama-3.3-70b-versatile",
+  "response": "..."
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /test-llm -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/test-llm</span>
+              <span class="endpoint-desc">Test all LLMs</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Tests all 5
+                providers and reports which are working.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /test-llm
+
+<span style="color:var(--text-muted);">Response:</span>
+{
+  "summary": "3/5 providers working",
+  "working": ["groq", "gemini", "cerebras"],
+  "failed": ["huggingface", "openrouter"],
+  "details": { ... }
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- POST /webhook -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method post">POST</span>
+              <span class="endpoint-path">/webhook</span>
+              <span class="endpoint-desc">GitHub webhook receiver</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Receives GitHub
+                webhook events. Handles <code style="color:var(--neon-cyan);">ping</code>, <code
+                  style="color:var(--neon-cyan);">installation</code>, and <code
+                  style="color:var(--neon-cyan);">pull_request</code> events.</p>
+              <div class="code-block">
+                <pre><span class="method method-post">POST</span> /webhook
+
+<span style="color:var(--text-muted);">Headers:</span>
+  X-GitHub-Event: pull_request
+  X-Hub-Signature-256: sha256=...
+
+<span style="color:var(--text-muted);">Body:</span> GitHub webhook payload (JSON)
+
+<span style="color:var(--text-muted);">Triggers on:</span> opened, synchronize, reopened</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- POST /installations/{id}/settings -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method post">POST</span>
+              <span class="endpoint-path">/installations/{id}/settings</span>
+              <span class="endpoint-desc">Save installation settings</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Create or update
+                installation configuration (repos, LLM provider, model).</p>
+              <div class="code-block">
+                <pre><span class="method method-post">POST</span> /installations/12345/settings
+
+<span style="color:var(--text-muted);">Body:</span>
+{
+  "userId": "octocat",
+  "selectedRepos": [
+    {"repoId": 1, "fullName": "octocat/hello-world"}
+  ],
+  "reviewer": {
+    "provider": "groq",
+    "model": "llama-3.3-70b-versatile"
+  }
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- PUT /installations/{id}/settings -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method put">PUT</span>
+              <span class="endpoint-path">/installations/{id}/settings</span>
+              <span class="endpoint-desc">Update settings</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Partially update
+                an existing installation's configuration.</p>
+              <div class="code-block">
+                <pre><span class="method method-put">PUT</span> /installations/12345/settings
+
+<span style="color:var(--text-muted);">Body (partial update):</span>
+{
+  "reviewer": {
+    "provider": "gemini",
+    "model": "gemini-2.0-flash"
+  }
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /installations/{id} -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/installations/{id}</span>
+              <span class="endpoint-desc">Get installation details</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Returns full
+                installation configuration including repos and reviewer settings.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /installations/12345
+
+<span style="color:var(--text-muted);">Response:</span>
+{
+  "installationId": 12345,
+  "userId": "octocat",
+  "selectedRepos": [...],
+  "reviewer": { "provider": "groq", "model": "..." },
+  "createdAt": "2025-...",
+  "updatedAt": "2025-..."
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /users/{id}/installations -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/users/{user_id}/installations</span>
+              <span class="endpoint-desc">List user installations</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Returns all
+                installations for a given GitHub user.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /users/octocat/installations
+
+<span style="color:var(--text-muted);">Response:</span> Array of installation objects</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /api/repos/{id} -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/api/repos/{installation_id}</span>
+              <span class="endpoint-desc">List accessible repos</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Returns all
+                repositories accessible to a given installation.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /api/repos/12345
+
+<span style="color:var(--text-muted);">Response:</span>
+{
+  "total_count": 5,
+  "repositories": [
+    { "id": 1, "full_name": "user/repo", ... }
+  ]
+}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- GET /installations/{id}/info -->
+          <div class="endpoint-card">
+            <div class="endpoint-header" onclick="toggleEndpoint(this)">
+              <span class="endpoint-method get">GET</span>
+              <span class="endpoint-path">/installations/{id}/info</span>
+              <span class="endpoint-desc">Get GitHub username</span>
+            </div>
+            <div class="endpoint-body">
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:var(--space-md);">Returns the
+                GitHub username (login) associated with an installation.</p>
+              <div class="code-block">
+                <pre><span class="method method-get">GET</span> /installations/12345/info
+
+<span style="color:var(--text-muted);">Response:</span> "octocat"</pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== PRIVACY PAGE ====================== -->
+    <section class="page" id="page-privacy">
+      <div class="container">
+        <div class="legal-content">
+          <h1>🔒 Privacy Policy</h1>
+          <p><em>Last updated: 2025-11-21</em></p>
+          <hr>
+          <h2>1. Information We Do Not Collect</h2>
+          <p>PR Guardian AI <strong>does NOT collect, store, or sell any personal information</strong>.</p>
+          <ul>
+            <li>We do not store your name, email, or account information</li>
+            <li>We do not save repository contents</li>
+            <li>We do not log code or files outside GitHub</li>
+            <li>We do not track usage behavior or use cookies</li>
+          </ul>
+          <hr>
+          <h2>2. Information the App Temporarily Processes</h2>
+          <p>To perform reviews, PR Guardian AI temporarily receives:</p>
+          <ul>
+            <li>Pull request event payloads</li>
+            <li>Code diffs provided by GitHub</li>
+            <li>Repository metadata (name, branches, PR ID)</li>
+          </ul>
+          <p>This data is <strong>processed only in memory</strong>, never saved, and deleted immediately after the
+            response.</p>
+          <hr>
+          <h2>3. Use of LLM APIs</h2>
+          <p>Code diffs are temporarily sent to the configured LLM provider for review generation. Providers include
+            HuggingFace, Groq, Gemini, Cerebras, and OpenRouter.</p>
+          <hr>
+          <h2>4. Security</h2>
+          <ul>
+            <li>All GitHub requests use authenticated installation tokens</li>
+            <li>Webhook signatures are validated</li>
+            <li>Private keys remain on the server</li>
+            <li>No data is stored or logged externally</li>
+          </ul>
+          <hr>
+          <h2>5. Your Control</h2>
+          <p>You may uninstall the app, revoke access, or remove installation permissions at any time. The app stops
+            receiving data immediately.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TERMS PAGE ====================== -->
+    <section class="page" id="page-terms">
+      <div class="container">
+        <div class="legal-content">
+          <h1>📜 Terms of Service</h1>
+          <p><em>Last updated: 2025-11-21</em></p>
+          <hr>
+          <h2>1. Purpose</h2>
+          <p>PR Guardian AI provides automated pull request reviews using AI models. It improves code quality by
+            generating suggestions and comments. Provided "as is" with no guarantees of correctness.</p>
+          <hr>
+          <h2>2. Acceptable Use</h2>
+          <p>You may use PR Guardian AI for personal projects, open-source projects, and team workflows. You agree not
+            to use it for malicious purposes, API abuse, or reverse engineering.</p>
+          <hr>
+          <h2>3. No Liability</h2>
+          <p>The developer is <strong>not liable</strong> for code errors from AI suggestions, data loss, downtime, or
+            issues caused by misuse.</p>
+          <hr>
+          <h2>4. Access & Permissions</h2>
+          <p>The app requires GitHub permissions to read PRs, repository metadata, and post comments. You may revoke
+            these at any time.</p>
+          <hr>
+          <h2>5. Termination</h2>
+          <p>You may uninstall at any time. The developer may suspend service if abuse is detected or maintenance is
+            required.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== SUPPORT PAGE ====================== -->
+    <section class="page" id="page-support">
+      <div class="container">
+        <div class="legal-content">
+          <h1>🛟 Support</h1>
+          <hr>
+          <h2>How to Get Support</h2>
+          <ol>
+            <li>Go to the <a href="https://github.com/Abdur1R/pr-reviewer/issues" target="_blank">Issues page</a></li>
+            <li>Click <strong>New Issue</strong></li>
+            <li>Select the appropriate template (Bug Report / Feature Request)</li>
+            <li>Provide a clear description, screenshots, steps to reproduce, and repo link</li>
+          </ol>
+          <hr>
+          <h2>Additional Contact</h2>
+          <p>For urgent matters, open an issue on the <a href="https://github.com/Abdur1R/pr-reviewer"
+              target="_blank">GitHub repository</a>.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

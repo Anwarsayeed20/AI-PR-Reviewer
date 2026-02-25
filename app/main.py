@@ -3,17 +3,21 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import time
+from pathlib import Path
 from typing import Any, Dict
 
 import httpx
 import jwt
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.db import get_installations_collection, get_users_collection
 from app.models import InstallationResponse, InstallationSettingsRequest, InstallationUpdateRequest
 from .llm_client import LocalLLMClient
+from .llm import get_llm_provider
 from .diff_parser import parse_diff
 from .rules import run_rules
 import requests
@@ -102,12 +106,12 @@ logger = logging.getLogger("pr-guardian")
 # FastAPI app
 app = FastAPI(title="PR Guardian AI Webhook")
 
-# CORS CONFIGURATION
-origins = [
-    settings.cors_orgins,  # from env variable
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-]
+# CORS CONFIGURATION — allow all origins for production
+cors_origins_str = settings.cors_orgins.strip()
+if cors_origins_str:
+    origins = [o.strip() for o in cors_origins_str.split(",") if o.strip()]
+else:
+    origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -116,6 +120,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend static files
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+if FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
 
 # ==========================
 # Helpers
@@ -365,6 +374,73 @@ async def root():
     return {"status": "ok", "app": "PR Guardian AI"}
 
 
+@app.get("/test-llm/{provider}")
+async def test_llm(provider: str, model: str | None = None):
+    """Quick health-check: sends a tiny prompt to the requested provider.
+
+    Usage:
+      GET /test-llm/huggingface
+      GET /test-llm/groq
+      GET /test-llm/gemini
+      GET /test-llm/cerebras
+      GET /test-llm/openrouter
+      GET /test-llm/gemini?model=gemini-2.0-flash
+    """
+    test_prompt = (
+        'Review this code and reply ONLY with valid JSON:\n'
+        '[{"path":"test.py","line":1,"content":"password=\\"123\\""}]\n'
+        'Format: {"comments":[{"path":"...","line":0,"comment":"..."}],"summary":"..."}'
+    )
+    try:
+        llm = get_llm_provider(provider=provider, model=model)
+        result = llm.query(test_prompt)
+        return {
+            "status": "ok",
+            "provider": llm.provider_name,
+            "model": llm.model_name,
+            "response": result,
+        }
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": str(e)})
+    except Exception as e:
+        logger.exception("LLM test failed for provider=%s", provider)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "status": "error",
+                "provider": provider,
+                "error_type": type(e).__name__,
+                "detail": str(e),
+            },
+        )
+
+
+@app.get("/test-llm")
+async def test_all_llms():
+    """Test ALL configured providers at once and report which ones work."""
+    providers = ["huggingface", "groq", "gemini", "cerebras", "openrouter"]
+    test_prompt = 'Reply with exactly: {"status":"ok"}'
+    results = {}
+
+    for name in providers:
+        try:
+            llm = get_llm_provider(provider=name)
+            response = llm.query(test_prompt)
+            results[name] = {"status": "ok", "model": llm.model_name, "response": response[:200]}
+        except Exception as e:
+            results[name] = {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
+    working = [k for k, v in results.items() if v["status"] == "ok"]
+    failed = [k for k, v in results.items() if v["status"] == "error"]
+
+    return {
+        "summary": f"{len(working)}/{len(providers)} providers working",
+        "working": working,
+        "failed": failed,
+        "details": results,
+    }
+
+
 @app.post("/webhook")
 async def webhook(
     request: Request,
@@ -511,15 +587,26 @@ async def webhook(
 
 
             logger.info(">>> Calling LLM with %d changes", len(changes[:10]))
-            
+
             logger.info("llm payload:\n%s \n%s", payload,json.dumps(payload, indent=2))
-            
-            # 4) Ask local LLM
-            # llm_result = await llm.review(json.dumps(payload))
-            
-            # Ask llm via Hugging Face API
-            llm_result=query_llm(payload)
-            # llm_result=query_groq(payload)
+
+            # 4) Resolve LLM provider from installation config (MongoDB)
+            installations = get_installations_collection()
+            inst_doc = installations.find_one(
+                {"installationId": installation_id}, {"_id": 0}
+            )
+            reviewer_cfg = (inst_doc or {}).get("reviewer", {})
+            provider_name = reviewer_cfg.get("provider")
+            model_name = reviewer_cfg.get("model")
+
+            logger.info(
+                ">>> Using LLM provider=%s  model=%s",
+                provider_name or "(default)",
+                model_name or "(default)",
+            )
+
+            llm_provider = get_llm_provider(provider=provider_name, model=model_name)
+            llm_result = llm_provider.query(payload)
 
             logger.info(">>> LLM response: %s", llm_result)
 
@@ -694,3 +781,16 @@ async def get_installation_info(installation_id: int):
     response.raise_for_status()
 
     return response.json().get("account", {}).get("login", "unknown")
+
+
+# ==========================
+# Frontend Catch-All
+# ==========================
+@app.get("/app")
+@app.get("/app/{rest_of_path:path}")
+async def serve_frontend(rest_of_path: str = ""):
+    """Serve the frontend SPA."""
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(str(index_file))
+    return JSONResponse({"error": "Frontend not found"}, status_code=404)
