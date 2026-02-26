@@ -126,6 +126,23 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 if FRONTEND_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
 
+
+# Serve frontend assets at root level too (for relative paths from /app)
+@app.get("/styles.css")
+async def serve_css():
+    css_file = FRONTEND_DIR / "styles.css"
+    if css_file.is_file():
+        return FileResponse(str(css_file), media_type="text/css")
+    raise HTTPException(status_code=404)
+
+
+@app.get("/app.js")
+async def serve_js():
+    js_file = FRONTEND_DIR / "app.js"
+    if js_file.is_file():
+        return FileResponse(str(js_file), media_type="application/javascript")
+    raise HTTPException(status_code=404)
+
 # ==========================
 # Helpers
 # ==========================
